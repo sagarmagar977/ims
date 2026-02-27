@@ -80,6 +80,7 @@ def _database_from_url(database_url):
 DEFAULT_SQLITE_PATH = _resolve_default_sqlite_path()
 
 IS_RENDER = _env_bool("RENDER", False) or bool(os.getenv("RENDER_EXTERNAL_HOSTNAME"))
+HAS_CORSHEADERS = importlib.util.find_spec("corsheaders") is not None
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-local-dev-only-change-me")
 DEBUG = _env_bool("DEBUG", default=not IS_RENDER)
@@ -116,6 +117,8 @@ INSTALLED_APPS = [
     "reports",
     "common",
 ]
+if HAS_CORSHEADERS:
+    INSTALLED_APPS.insert(7, "corsheaders")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -126,6 +129,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+if HAS_CORSHEADERS:
+    MIDDLEWARE.insert(1, "corsheaders.middleware.CorsMiddleware")
 
 if importlib.util.find_spec("whitenoise"):
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
@@ -226,6 +231,17 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
     SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", True)
+
+# CORS configuration for frontend on separate host/machine.
+CORS_ALLOW_ALL_ORIGINS = _env_bool("CORS_ALLOW_ALL_ORIGINS", False)
+CORS_ALLOWED_ORIGINS = _env_list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_CREDENTIALS = _env_bool("CORS_ALLOW_CREDENTIALS", True)
+FRONTEND_URL = (os.getenv("FRONTEND_URL") or "").strip().rstrip("/")
+if FRONTEND_URL:
+    if FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+    if FRONTEND_URL not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "IMS API",
