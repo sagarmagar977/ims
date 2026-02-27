@@ -10,6 +10,8 @@ urlpatterns = [
     path("health/", lambda request: JsonResponse({"status": "ok"}), name="health"),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token-obtain-pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/", include("users.urls")),
     path("api/", include("hierarchy.urls")),
     path("api/", include("catalog.urls")),
@@ -19,8 +21,3 @@ urlpatterns = [
     path("api/", include("reports.urls")),
 ]
 
-if settings.ENABLE_SWAGGER:
-    urlpatterns += [
-        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-        path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    ]
