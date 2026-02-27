@@ -184,6 +184,7 @@ if importlib.util.find_spec("whitenoise"):
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
+    WHITENOISE_MANIFEST_STRICT = False
 
 AUTH_USER_MODEL = "users.User"
 
