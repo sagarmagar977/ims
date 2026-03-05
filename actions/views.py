@@ -123,7 +123,20 @@ class ItemAssignmentViewSet(viewsets.ModelViewSet):
             }
             serializer = self.get_serializer(data=payload)
             if serializer.is_valid():
-                serializer.save(assigned_by=request.user)
+                assignment = serializer.save(assigned_by=request.user)
+                create_inventory_audit_log(
+                    item=assignment.item,
+                    action_type=InventoryActionType.ASSIGN,
+                    user=request.user,
+                    after_data={
+                        "assignment_id": assignment.id,
+                        "assigned_to_user": assignment.assigned_to_user_id,
+                        "assigned_to_office": assignment.assigned_to_office_id,
+                        "status": assignment.status,
+                        "assign_till": assignment.assign_till.isoformat() if assignment.assign_till else None,
+                    },
+                    remarks="Item assigned (bulk import)",
+                )
                 created_count += 1
             else:
                 errors.append({"line": index, "errors": serializer.errors})

@@ -17,6 +17,58 @@ WRITE_ROLES = {
     UserRoles.WARD_OFFICER,
 }
 
+WRITE_ROLE_MATRIX = {
+    "office": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+    },
+    "category": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+    },
+    "custom-field-definition": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+    },
+    "inventory-item": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+        UserRoles.CENTRAL_PROCUREMENT_STORE,
+        UserRoles.PROVINCIAL_ADMIN,
+        UserRoles.LOCAL_ADMIN,
+    },
+    "fixed-asset": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+        UserRoles.CENTRAL_PROCUREMENT_STORE,
+        UserRoles.PROVINCIAL_ADMIN,
+        UserRoles.LOCAL_ADMIN,
+    },
+    "consumable-stock": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+        UserRoles.CENTRAL_PROCUREMENT_STORE,
+        UserRoles.PROVINCIAL_ADMIN,
+        UserRoles.LOCAL_ADMIN,
+    },
+    "consumable-stock-transaction": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+        UserRoles.CENTRAL_PROCUREMENT_STORE,
+        UserRoles.PROVINCIAL_ADMIN,
+        UserRoles.LOCAL_ADMIN,
+        UserRoles.WARD_OFFICER,
+    },
+    "item-assignment": {
+        UserRoles.SUPER_ADMIN,
+        UserRoles.CENTRAL_ADMIN,
+        UserRoles.CENTRAL_PROCUREMENT_STORE,
+        UserRoles.PROVINCIAL_ADMIN,
+        UserRoles.LOCAL_ADMIN,
+    },
+    "inventory-audit-log": set(),
+}
+
 
 class IMSAccessPermission(BasePermission):
     """
@@ -38,5 +90,9 @@ class IMSAccessPermission(BasePermission):
 
         if user.role in READ_ONLY_ROLES:
             return False
+
+        view_basename = getattr(view, "basename", None)
+        if view_basename in WRITE_ROLE_MATRIX:
+            return user.role in WRITE_ROLE_MATRIX[view_basename]
 
         return user.role in WRITE_ROLES

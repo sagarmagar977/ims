@@ -1,6 +1,8 @@
 from rest_framework import status
 from rest_framework.test import APITestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 
+from audit.models import InventoryActionType, InventoryAuditLog
 from catalog.models import Category
 from hierarchy.models import Office, OfficeLevels
 from users.models import User, UserRoles
@@ -29,6 +31,9 @@ class InventoryAccessAndTransactionTests(APITestCase):
         )
         self.finance_user = User.objects.create_user(
             username="finance1", password="pass12345", role=UserRoles.FINANCE, office=self.central
+        )
+        self.ward_user = User.objects.create_user(
+            username="ward11", password="pass12345", role=UserRoles.WARD_OFFICER, office=self.ward_11
         )
 
         InventoryItem.objects.create(
@@ -67,6 +72,19 @@ class InventoryAccessAndTransactionTests(APITestCase):
         response = self.client.post("/api/inventory-items/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_ward_role_cannot_create_inventory_item(self):
+        self.client.force_authenticate(user=self.ward_user)
+        payload = {
+            "category": self.fixed_cat.id,
+            "office": self.ward_11.id,
+            "title": "Ward Created Item",
+            "item_number": "WARD-1",
+            "item_type": "FIXED_ASSET",
+            "status": "ACTIVE",
+        }
+        response = self.client.post("/api/inventory-items/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_stock_transaction_updates_balance(self):
         self.client.force_authenticate(user=self.provincial_user)
         item = InventoryItem.objects.create(
@@ -90,3 +108,18 @@ class InventoryAccessAndTransactionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         stock.refresh_from_db()
         self.assertEqual(float(stock.quantity), 45.0)
+
+    def test_inventory_bulk_import_creates_audit_logs(self):
+        self.client.force_authenticate(user=self.provincial_user)
+        csv_content = (
+            "title,item_number,item_type,status,category,office,amount,price,currency,store,project,department,manufacturer,description\n"
+            f"Laptop B,P1-NEW,FIXED_ASSET,ACTIVE,{self.fixed_cat.id},{self.ward_11.id},0,0,,Main,PRJ,IT,Dell,Imported row\n"
+        ).encode("utf-8")
+        upload = SimpleUploadedFile("items.csv", csv_content, content_type="text/csv")
+        response = self.client.post("/api/inventory-items/bulk-import/", {"file": upload}, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["created"], 1)
+        self.assertEqual(
+            InventoryAuditLog.objects.filter(action_type=InventoryActionType.CREATE, remarks__icontains="bulk import").count(),
+            1,
+        )

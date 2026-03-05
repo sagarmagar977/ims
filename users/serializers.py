@@ -48,6 +48,20 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated and not request.user.is_staff and request.user.pk == instance.pk:
+            protected_fields = ("role", "office", "is_active")
+            changed_protected = [field for field in protected_fields if field in validated_data]
+            if changed_protected:
+                raise serializers.ValidationError(
+                    {
+                        "detail": (
+                            "You cannot update privileged account fields "
+                            "(role, office, is_active) on your own profile."
+                        )
+                    }
+                )
+
         password = validated_data.pop("password", None)
         validated_data.pop("confirm_password", None)
         for attr, value in validated_data.items():

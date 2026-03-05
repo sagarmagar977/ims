@@ -6,7 +6,7 @@ from .models import InventoryAuditLog
 from .serializers import InventoryAuditLogSerializer
 
 
-class InventoryAuditLogViewSet(viewsets.ModelViewSet):
+class InventoryAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = InventoryAuditLog.objects.select_related("item", "performed_by").all().order_by("id")
     serializer_class = InventoryAuditLogSerializer
     filterset_fields = ["item", "action_type", "performed_by"]
@@ -18,6 +18,3 @@ class InventoryAuditLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return scope_queryset_by_user(queryset, self.request.user, "item__office_id")
-
-    def perform_create(self, serializer):
-        serializer.save(performed_by=self.request.user)

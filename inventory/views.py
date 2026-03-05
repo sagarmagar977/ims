@@ -85,7 +85,14 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             }
             serializer = self.get_serializer(data=payload)
             if serializer.is_valid():
-                serializer.save()
+                item = serializer.save()
+                create_inventory_audit_log(
+                    item=item,
+                    action_type=InventoryActionType.CREATE,
+                    user=request.user,
+                    after_data=item_snapshot(item),
+                    remarks="Inventory item created (bulk import)",
+                )
                 created_count += 1
             else:
                 errors.append({"line": index, "errors": serializer.errors})
