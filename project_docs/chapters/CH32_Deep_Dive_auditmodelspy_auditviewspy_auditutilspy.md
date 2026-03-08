@@ -1,0 +1,30 @@
+# Chapter 32 — Deep Dive: `audit/models.py`, `audit/views.py`, `audit/utils.py`
+
+## Learning Goals
+- Understand audit storage schema and helper-driven event creation.
+
+## Reference Files
+- `audit/models.py`
+- `audit/views.py`
+- `audit/utils.py`
+
+## Deep Dive Walkthrough
+
+## 1) Audit storage design
+- `InventoryAuditLog` keeps structured before/after JSON and optional attachment.
+- Action type is normalized through `InventoryActionType` enum.
+
+## 2) Read API design
+- `InventoryAuditLogViewSet` is read-only by class type.
+- Includes filter/search/order fields for traceability use cases.
+- Office scope uses `item__office_id` relation path.
+
+## 3) Utility contract
+- `create_inventory_audit_log(...)` is a centralized write helper used by inventory/actions flows.
+- `item_snapshot(item)` provides consistent payload keys for audit entries.
+
+## 4) Practical implication
+- The project favors explicit event writes from business endpoints over model signals.
+
+## Chapter 32 Outcome
+You now understand the audit event contract and where/how audit records are generated and consumed.

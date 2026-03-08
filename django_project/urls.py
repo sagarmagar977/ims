@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/", include("actions.urls")),
     path("api/", include("audit.urls")),
     path("api/", include("reports.urls")),
+    path("api/", include("common.urls")),
     path("api/v1/", include("users.urls")),
     path("api/v1/", include("hierarchy.urls")),
     path("api/v1/", include("catalog.urls")),
@@ -30,4 +31,5 @@ urlpatterns = [
     path("api/v1/", include("actions.urls")),
     path("api/v1/", include("audit.urls")),
     path("api/v1/", include("reports.urls")),
+    path("api/v1/", include("common.urls")),
 ]

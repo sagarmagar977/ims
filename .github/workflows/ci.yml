@@ -1,0 +1,31 @@
+name: Backend CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test-and-gates:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Endpoint lifecycle gate
+        run: python scripts/check_endpoint_lifecycle.py
+      - name: Security posture gate
+        run: python scripts/check_security_posture.py
+      - name: Apply migrations
+        run: python manage.py migrate --noinput
+      - name: Backup orchestration drill
+        run: |
+          python manage.py run_backup
+          python manage.py run_restore_drill
+      - name: Run test suite
+        run: python manage.py test

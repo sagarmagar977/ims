@@ -20,5 +20,31 @@ services:
       - key: ENABLE_SWAGGER
         value: "true"
       - key: FRONTEND_URL
+        sync: false 
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+  - type: worker
+    name: ims-backend-worker
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A django_project worker --loglevel=info
+    envVars:
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+  - type: worker
+    name: ims-backend-beat
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A django_project beat --loglevel=info
+    envVars:
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
         sync: false
       

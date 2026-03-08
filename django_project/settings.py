@@ -221,6 +221,69 @@ LOW_STOCK_ALERT_EMAILS = [
     for email in os.getenv("LOW_STOCK_ALERT_EMAILS", "").split(",")
     if email.strip()
 ]
+LOW_STOCK_ALERT_SMS = [
+    phone.strip()
+    for phone in os.getenv("LOW_STOCK_ALERT_SMS", "").split(",")
+    if phone.strip()
+]
+PERIODIC_REPORT_EMAILS = [
+    email.strip()
+    for email in os.getenv("PERIODIC_REPORT_EMAILS", "").split(",")
+    if email.strip()
+]
+OPS_ALERT_EMAILS = [
+    email.strip()
+    for email in os.getenv("OPS_ALERT_EMAILS", "").split(",")
+    if email.strip()
+]
+
+NOTIFICATION_EMAIL_PROVIDER = os.getenv("NOTIFICATION_EMAIL_PROVIDER", "django")
+NOTIFICATION_SMS_PROVIDER = os.getenv("NOTIFICATION_SMS_PROVIDER", "disabled")
+NOTIFICATION_WEBHOOK_TOKEN = os.getenv("NOTIFICATION_WEBHOOK_TOKEN", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_PHONE = os.getenv("TWILIO_FROM_PHONE", "")
+
+LEGACY_API_DEPRECATION_ENABLED = _env_bool("LEGACY_API_DEPRECATION_ENABLED", True)
+LEGACY_API_PREFIX = os.getenv("LEGACY_API_PREFIX", "/api/")
+LEGACY_API_SUCCESSOR_PREFIX = os.getenv("LEGACY_API_SUCCESSOR_PREFIX", "/api/v1/")
+LEGACY_API_SUNSET_HTTP_DATE = os.getenv("LEGACY_API_SUNSET_HTTP_DATE", "Thu, 31 Dec 2026 23:59:59 GMT")
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = _env_bool("CELERY_TASK_ALWAYS_EAGER", False)
+CELERY_TASK_EAGER_PROPAGATES = _env_bool("CELERY_TASK_EAGER_PROPAGATES", False)
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "periodic-low-stock-alerts": {
+        "task": "common.tasks.periodic_low_stock_alerts",
+        "schedule": int(os.getenv("LOW_STOCK_ALERT_INTERVAL_SECONDS", "3600")),
+    },
+    "periodic-inventory-report-generation": {
+        "task": "common.tasks.periodic_inventory_report_generation",
+        "schedule": int(os.getenv("PERIODIC_REPORT_INTERVAL_SECONDS", "86400")),
+    },
+    "periodic-database-backup": {
+        "task": "common.tasks.periodic_database_backup",
+        "schedule": int(os.getenv("BACKUP_INTERVAL_SECONDS", "86400")),
+    },
+    "periodic-restore-drill": {
+        "task": "common.tasks.periodic_restore_drill",
+        "schedule": int(os.getenv("RESTORE_DRILL_INTERVAL_SECONDS", "604800")),
+    },
+    "periodic-slo-monitor": {
+        "task": "common.tasks.periodic_slo_monitor",
+        "schedule": int(os.getenv("SLO_MONITOR_INTERVAL_SECONDS", "300")),
+    },
+}
+
+BACKUP_ROOT = os.getenv("BACKUP_ROOT", str(BASE_DIR / "backups"))
+BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", "14"))
+SLO_BACKUP_MAX_AGE_HOURS = int(os.getenv("SLO_BACKUP_MAX_AGE_HOURS", "24"))
+SLO_MAX_FAILED_NOTIFICATIONS_24H = int(os.getenv("SLO_MAX_FAILED_NOTIFICATIONS_24H", "10"))
+SLO_REQUIRE_SUCCESSFUL_RESTORE_DRILL = _env_bool("SLO_REQUIRE_SUCCESSFUL_RESTORE_DRILL", True)
+SLO_RESTORE_DRILL_MAX_AGE_DAYS = int(os.getenv("SLO_RESTORE_DRILL_MAX_AGE_DAYS", "14"))
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True

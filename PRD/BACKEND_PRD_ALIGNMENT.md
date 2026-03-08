@@ -30,17 +30,33 @@
 - Design-to-backend screen alignment reviewed for:
   - Dashboard, Items, Categories, Assignments, Consumable Stock, Audit Log, and Filter modal.
 - Test coverage expanded for RBAC + routing behavior across `common`, `catalog`, `hierarchy`, `actions`, `audit`, `inventory`, and `reports`.
+- Celery scheduler/worker integration for periodic low-stock alerts and report generation.
+- Real provider integration paths for notifications:
+  - Email via Django backend or SendGrid API.
+  - SMS via Twilio API.
+  - Delivery tracking persisted in `common.NotificationDelivery`.
+- Endpoint lifecycle/deprecation calendar documented and enforced by CI gate script + workflow.
+- Backup orchestration implemented:
+  - Scheduled backup task + manual backup command.
+  - Restore drill task + manual restore drill command.
+  - Backup and restore drill execution history tracked in DB.
+- Observability and SLO instrumentation implemented:
+  - Operational status and SLO endpoints.
+  - Periodic SLO monitor with alert notifications.
+  - Runbook documenting jobs, thresholds, and operations.
+- Security hardening checks implemented:
+  - Security posture gate script in CI.
+  - Automated dependency audit (`pip-audit`) and static analysis (`bandit`) workflow.
 
 ## Partially Completed
 - Comprehensive test suite across all apps is improved from baseline, but still not exhaustive for all business flows and edge cases.
 - Full production hardening is in progress:
-  - Completed in this pass: DRF throttling baseline and legacy API deprecation signaling.
-  - Remaining: backup orchestration, observability dashboards, and deeper security hardening checks.
+  - Completed in this pass: DRF throttling baseline, lifecycle/deprecation governance, backup/restore drill automation, and security CI gates.
+  - Remaining: external SIEM/APM integrations and production dashboard wiring in target infra.
 
 ## Not Completed Yet (Backend)
-- Background job/scheduler for periodic alerts and report generation.
-- Integration with real email/SMS providers and delivery tracking.
-- Fully documented endpoint lifecycle/deprecation calendar and automated enforcement gates in CI.
+- External SIEM/APM platform integration (e.g., cloud-native dashboards and long-term log retention backend).
+- Government production environment hardening validation sign-off checklist execution.
 
 ## Operational Note
 - Default SQLite path is now auto-fallback to writable locations (usually `%TEMP%\\ims\\db.sqlite3`) to avoid prior workspace drive I/O errors.

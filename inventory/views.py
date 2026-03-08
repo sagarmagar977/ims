@@ -1,8 +1,6 @@
 import csv
 import io
 
-from django.conf import settings
-from django.core.mail import send_mail
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +8,7 @@ from rest_framework.response import Response
 from audit.models import InventoryActionType
 from audit.utils import create_inventory_audit_log, item_snapshot
 from common.access import scope_queryset_by_user
+from common.notifications import send_low_stock_alert_for_stock
 from common.permissions import IMSAccessPermission
 from .models import ConsumableStock, ConsumableStockTransaction, FixedAsset, InventoryItem
 from .serializers import (
@@ -170,17 +169,4 @@ class ConsumableStockTransactionViewSet(viewsets.ModelViewSet):
 
         stock = transaction_obj.stock
         if stock.reorder_alert_enabled and stock.quantity <= stock.min_threshold:
-            recipients = [email for email in getattr(settings, "LOW_STOCK_ALERT_EMAILS", []) if email]
-            if recipients:
-                send_mail(
-                    subject=f"Low stock alert: {stock.item.title}",
-                    message=(
-                        f"Item: {stock.item.title}\n"
-                        f"Current quantity: {stock.quantity}\n"
-                        f"Minimum threshold: {stock.min_threshold}\n"
-                        f"Office: {stock.item.office.name}\n"
-                    ),
-                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "ims@localhost"),
-                    recipient_list=recipients,
-                    fail_silently=True,
-                )
+            send_low_stock_alert_for_stock(stock, trigger="stock_transaction")

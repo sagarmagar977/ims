@@ -2,8 +2,10 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from catalog.models import Category
+from common.tasks import periodic_inventory_report_generation
 from hierarchy.models import Office, OfficeLevels
 from inventory.models import InventoryItem, InventoryItemType
+from .models import GeneratedReport, ReportGenerationStatus, ReportType
 from users.models import User
 
 
@@ -41,3 +43,10 @@ class ReportExportTests(APITestCase):
         response = self.client.get("/api/v1/reports/inventory/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
+
+    def test_periodic_inventory_report_generation_task_creates_report(self):
+        result = periodic_inventory_report_generation()
+        report = GeneratedReport.objects.get(id=result["report_id"])
+        self.assertEqual(report.report_type, ReportType.INVENTORY_DAILY_SUMMARY)
+        self.assertEqual(report.status, ReportGenerationStatus.GENERATED)
+        self.assertGreaterEqual(report.row_count, 1)

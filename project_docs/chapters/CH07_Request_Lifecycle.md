@@ -1,0 +1,98 @@
+# Chapter 7 — Request Lifecycle
+
+## Learning Goals
+- Understand end-to-end API request processing in this backend.
+- Identify where auth, permissions, scoping, validation, persistence, and side effects occur.
+- Distinguish write lifecycle and read lifecycle behavior.
+
+## Reference Files
+- `django_project/urls.py`
+- `common/middleware.py`
+- `common/permissions.py`
+- `common/access.py`
+- `inventory/views.py`
+- `inventory/serializers.py`
+- `inventory/models.py`
+- `audit/utils.py`
+
+## Lifecycle Overview
+A request in this project generally passes through:
+1. URL routing
+2. Middleware
+3. Authentication and permission checks
+4. Viewset action selection
+5. Queryset scoping (for read/list/retrieve operations)
+6. Serializer validation
+7. Model/database write or read
+8. Side effects (audit log, email, etc., where implemented)
+9. Response serialization
+10. Response middleware headers
+
+## Concrete Write Flow Example: `POST /api/inventory-items/`
+### 1. Route resolution
+- Root URL config includes `inventory.urls` under `/api/` and `/api/v1/`.
+- DRF router resolves to `InventoryItemViewSet.create`.
+
+### 2. Middleware phase
+- Request passes middleware stack.
+- `LegacyApiDeprecationMiddleware` later adds deprecation headers if path starts with `/api/` and is not `/api/v1/`.
+
+### 3. Authentication and permissions
+- Global DRF defaults require authenticated user (JWT auth configured in settings).
+- `InventoryItemViewSet.permission_classes = [IMSAccessPermission]`.
+- `IMSAccessPermission` checks role matrix for `inventory-item` writes.
+
+### 4. Serializer validation
+- `InventoryItemSerializer.validate` enforces category-type consistency:
+  - consumable category requires `CONSUMABLE` item type,
+  - non-consumable category requires `FIXED_ASSET` item type.
+
+### 5. Persistence
+- Valid data is saved to `InventoryItem` model.
+
+### 6. Post-save side effect
+- `perform_create` in viewset calls `create_inventory_audit_log(...)` with action type `CREATE` and item snapshot.
+
+### 7. Response
+- DRF returns created resource payload (standard `ModelViewSet.create` behavior).
+- Legacy `/api/*` requests receive deprecation metadata headers from middleware.
+
+## Concrete Read Flow Example: `GET /api/inventory-items/`
+### 1. Route and middleware
+- Same routing and middleware entry behavior.
+
+### 2. Authentication and permissions
+- Safe method (`GET`) passes permission check for users with a role.
+
+### 3. Queryset scoping
+- `get_queryset` calls `scope_queryset_by_user(queryset, request.user, "office_id")`.
+- Returned rows depend on user role and accessible offices.
+
+### 4. Filtering/search/ordering/pagination
+- DRF applies filter/search/ordering backends configured globally plus viewset fields.
+- Paginated response is returned (page-number pagination).
+
+## Lifecycle With Transactional Domain Mutation Example
+For `POST /api/consumable-stock-transactions/`:
+- serializer `create` runs inside `@transaction.atomic`.
+- stock quantity is adjusted and `balance_after` is computed.
+- insufficient stock raises validation error.
+- `perform_create` sets `performed_by`, writes audit log, and may send low-stock alert email if threshold is crossed and recipients are configured.
+
+## Where Core Lifecycle Responsibilities Live
+- Routing: `django_project/urls.py` + app routers
+- Middleware response metadata: `common/middleware.py`
+- Permission gate: `common/permissions.py`
+- Data scope gate: `common/access.py`
+- Request handling and side effects: app `views.py`
+- Validation and some transactional business logic: app `serializers.py`
+- Storage constraints: app `models.py`
+
+## Error/Failure Points in Lifecycle
+- Authentication failure -> 401/403 path via DRF/auth permission flow.
+- Role permission failure -> 403 from `IMSAccessPermission`.
+- Serializer validation failure -> 400 with field errors.
+- Transactional stock rule failure -> 400 (insufficient quantity).
+
+## Chapter 7 Outcome
+You now have a practical request lifecycle map from inbound URL to final response, including where this codebase enforces security, business rules, data visibility, persistence, and side effects.

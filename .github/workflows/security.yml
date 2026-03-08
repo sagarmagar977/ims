@@ -1,0 +1,25 @@
+name: Security Checks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  dependency-and-static-security:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pip-audit bandit
+      - name: Dependency vulnerability audit
+        run: pip-audit
+      - name: Static security scan
+        run: bandit -q -r users hierarchy catalog inventory actions audit reports common django_project
