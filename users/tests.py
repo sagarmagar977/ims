@@ -51,11 +51,11 @@ class TokenLoginTests(APITestCase):
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
-    def test_token_obtain_with_username_still_works(self):
+    def test_token_obtain_with_username_only_is_rejected(self):
         response = self.client.post(
             "/api/v1/auth/token/",
             {"username": "sagar", "password": "pass12345"},
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("access", response.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data)
