@@ -27,3 +27,35 @@ class UserPrivilegeEscalationTests(APITestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.role, UserRoles.WARD_OFFICER)
         self.assertTrue(self.user.is_active)
+
+
+class TokenLoginTests(APITestCase):
+    def setUp(self):
+        self.office = Office.objects.create(name="Central 2", level=OfficeLevels.CENTRAL, location_code="CENTRAL-2")
+        self.user = User.objects.create_user(
+            username="sagar",
+            email="sagar@gmail.com",
+            password="pass12345",
+            role=UserRoles.CENTRAL_ADMIN,
+            office=self.office,
+            is_active=True,
+        )
+
+    def test_token_obtain_with_email(self):
+        response = self.client.post(
+            "/api/v1/auth/token/",
+            {"email": "sagar@gmail.com", "password": "pass12345"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+
+    def test_token_obtain_with_username_still_works(self):
+        response = self.client.post(
+            "/api/v1/auth/token/",
+            {"username": "sagar", "password": "pass12345"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
