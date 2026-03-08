@@ -1,8 +1,8 @@
 import json
 import logging
 import base64
-from urllib import parse, request
 
+import requests
 from django.conf import settings
 from django.core.mail import send_mail
 
@@ -22,18 +22,18 @@ def _send_sendgrid_email(delivery, subject, body):
         "subject": subject,
         "content": [{"type": "text/plain", "value": body}],
     }
-    req = request.Request(
+    response = requests.post(
         "https://api.sendgrid.com/v3/mail/send",
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
+        json=payload,
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {settings.SENDGRID_API_KEY}",
         },
+        timeout=15,
     )
-    with request.urlopen(req, timeout=15) as response:
-        message_id = response.headers.get("X-Message-Id", "")
-        delivery.mark_sent(provider_message_id=message_id)
+    response.raise_for_status()
+    message_id = response.headers.get("X-Message-Id", "")
+    delivery.mark_sent(provider_message_id=message_id)
 
 
 def send_email_notification(subject, body, recipients, metadata=None):
@@ -78,26 +78,24 @@ def _send_twilio_sms(delivery, body):
     if not account_sid or not auth_token or not from_phone:
         raise ValueError("TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_PHONE are required.")
 
-    data = parse.urlencode(
-        {
+    twilio_url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+    encoded_auth = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
+    response = requests.post(
+        twilio_url,
+        data={
             "From": from_phone,
             "To": delivery.recipient,
             "Body": body,
-        }
-    ).encode("utf-8")
-    twilio_url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
-    req = request.Request(
-        twilio_url,
-        data=data,
-        method="POST",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        },
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Basic {encoded_auth}",
+        },
+        timeout=15,
     )
-    encoded_auth = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
-    req.add_header("Authorization", f"Basic {encoded_auth}")
-
-    with request.urlopen(req, timeout=15) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-        delivery.mark_sent(provider_message_id=payload.get("sid", ""))
+    response.raise_for_status()
+    payload = response.json()
+    delivery.mark_sent(provider_message_id=payload.get("sid", ""))
 
 
 def send_sms_notification(message, recipients, metadata=None):
