@@ -131,7 +131,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 if HAS_CORSHEADERS:
-    MIDDLEWARE.insert(1, "corsheaders.middleware.CorsMiddleware")
+    MIDDLEWARE.insert(2, "corsheaders.middleware.CorsMiddleware")
 
 if importlib.util.find_spec("whitenoise"):
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
@@ -313,6 +313,16 @@ CORS_ALLOW_ALL_ORIGINS = _env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 CORS_ALLOWED_ORIGINS = _env_list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = _env_bool("CORS_ALLOW_CREDENTIALS", True)
 FRONTEND_URL = (os.getenv("FRONTEND_URL") or "").strip().rstrip("/")
+LOCAL_FRONTEND_ORIGINS = _env_list(
+    "LOCAL_FRONTEND_ORIGINS",
+    default=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+)
+for origin in LOCAL_FRONTEND_ORIGINS:
+    if origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(origin)
 if FRONTEND_URL:
     if FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
